@@ -95,6 +95,7 @@ def preprocess_labs(lab_df: pd.DataFrame, selected_variables:list, material_to_i
 
     ### PROCESSING MATERIALS ###
     # Retain only selected materials
+    equalized_reorganised_lab_df['original_material_label'] = equalized_reorganised_lab_df['material_label'].copy()
     equalized_reorganised_lab_df.loc[
         reorganised_lab_df['material_label'].isin(blood_material_equivalents), 'material_label'] = 'any_blood'
     excluded_material = list(set(equalized_reorganised_lab_df.material_label.unique()) - set(material_to_include))
