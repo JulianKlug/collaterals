@@ -3,7 +3,8 @@ import os
 import numpy as np
 
 def remove_french_accents_and_cedillas_from_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    cols = df.select_dtypes(include=[np.object]).columns
+    # np.object is removed in recent NumPy versions; use the built-in object dtype instead
+    cols = df.select_dtypes(include=[object]).columns
     df[cols] = df[cols].apply(
         lambda x: x.str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8'))
 
@@ -102,15 +103,15 @@ def patient_selection(registry_path:str, eds_path:str,
     if exclude_non_acute_stroke:
         # exclude non acute stroke patients
         datatime_format = '%d.%m.%Y %H:%M'
-        registry_df['arrival_dt'] = pd.to_datetime(registry_df['Arrival at hospital'],
-                                                        format='%Y%m%d').dt.strftime('%d.%m.%Y') + ' ' + \
-                                        pd.to_datetime(registry_df['Arrival time'], format='%H:%M',
-                                                        infer_datetime_format=True).dt.strftime('%H:%M')
+        arrival_date = pd.to_datetime(registry_df['Arrival at hospital'], format='%Y%m%d', errors='coerce')
+        arrival_time = pd.to_datetime(registry_df['Arrival time'], errors='coerce')  # handles HH:MM or HH:MM:SS
+        arrival_str = arrival_date.dt.strftime('%d.%m.%Y') + ' ' + arrival_time.dt.strftime('%H:%M')
+        registry_df['arrival_dt'] = arrival_str.where(arrival_date.notna() & arrival_time.notna(), pd.NA)
 
-        registry_df['stroke_dt'] = pd.to_datetime(registry_df['Onset date'],
-                                                        format='%Y%m%d').dt.strftime('%d.%m.%Y') + ' ' + \
-                                            pd.to_datetime(registry_df['Onset time'], format='%H:%M',
-                                                        infer_datetime_format=True).dt.strftime('%H:%M')
+        stroke_date = pd.to_datetime(registry_df['Onset date'], format='%Y%m%d', errors='coerce')
+        stroke_time = pd.to_datetime(registry_df['Onset time'], errors='coerce')  # handles HH:MM or HH:MM:SS
+        stroke_str = stroke_date.dt.strftime('%d.%m.%Y') + ' ' + stroke_time.dt.strftime('%H:%M')
+        registry_df['stroke_dt'] = stroke_str.where(stroke_date.notna() & stroke_time.notna(), pd.NA)
 
         registry_df['delta_onset_arrival'] = (
                 pd.to_datetime(registry_df['stroke_dt'], format=datatime_format, errors='coerce')

@@ -164,10 +164,10 @@ def preprocess_labs(lab_df: pd.DataFrame, selected_variables:list, material_to_i
     # correct negative values
     # set negative values for dosage label 'hémoglobine' to NaN (NaN values will be removed later)
     equalized_reorganised_lab_df.loc[(equalized_reorganised_lab_df['dosage_label'].isin(['hémoglobine', 'hemoglobine'])) & (
-                equalized_reorganised_lab_df['value'] < 0), 'value'] = np.NAN
+                equalized_reorganised_lab_df['value'] < 0), 'value'] = np.nan
     # set negative values for dosage label 'glucose' to NaN (NaN values will be removed later)
     equalized_reorganised_lab_df.loc[(equalized_reorganised_lab_df['dosage_label'] == 'glucose') & (
-                equalized_reorganised_lab_df['value'] < 0), 'value'] = np.NAN
+                equalized_reorganised_lab_df['value'] < 0), 'value'] = np.nan
     equalized_reorganised_lab_df.dropna(subset=['value'], inplace=True)
     # warn if negative values are still present (except base deficit)
     if len(equalized_reorganised_lab_df[(equalized_reorganised_lab_df['value'] < 0)
@@ -183,7 +183,7 @@ def preprocess_labs(lab_df: pd.DataFrame, selected_variables:list, material_to_i
         equalized_reorganised_lab_df.loc[(equalized_reorganised_lab_df['dosage_label'] == variable)
                                          & (~equalized_reorganised_lab_df['value'].between(
                                              possible_value_ranges_for_variable['Min'].values[0],
-                                             possible_value_ranges_for_variable['Max'].values[0])), 'value'] = np.NAN
+                                             possible_value_ranges_for_variable['Max'].values[0])), 'value'] = np.nan
 
     n_observations_out_ouf_range = equalized_reorganised_lab_df["value"].isna().sum()
     if verbose:
@@ -192,10 +192,16 @@ def preprocess_labs(lab_df: pd.DataFrame, selected_variables:list, material_to_i
 
 
     # get mean number of values per dosage label patient admission id
-    median_observations_per_case_admission_id = \
-        equalized_reorganised_lab_df.groupby(['case_admission_id', 'dosage_label'])['value'].count().reset_index()
-    median_observations_per_case_admission_id_df = median_observations_per_case_admission_id.groupby('dosage_label').median()
-    median_observations_per_case_admission_id_df.rename(columns={'value': 'median_observations_per_case_admission_id'}, inplace=True)
+    median_observations_per_case_admission_id = (
+        equalized_reorganised_lab_df.groupby(['case_admission_id', 'dosage_label'])['value']
+        .count()
+        .reset_index()
+    )
+    median_observations_per_case_admission_id_df = (
+        median_observations_per_case_admission_id.groupby('dosage_label')['value']
+        .median()
+        .to_frame(name='median_observations_per_case_admission_id')
+    )
     descriptive_stats_df = equalized_reorganised_lab_df.groupby('dosage_label')['value'].describe()
 
     if verbose:
@@ -455,7 +461,7 @@ def mimic_preprocess_labs(lab_df: pd.DataFrame, selected_variables:list, log_dir
     if verbose:
         print(f'Excluding {n_observations_out_ouf_range} observations because out of range')
 
-    plausible_restricted_lab_df.loc[plausible_restricted_lab_df['out_of_range'] == True, ['value', 'valuenum']] = np.NAN
+    plausible_restricted_lab_df.loc[plausible_restricted_lab_df['out_of_range'] == True, ['value', 'valuenum']] = np.nan
 
     plausible_restricted_lab_df.dropna(subset=['valuenum'], inplace=True)
 
